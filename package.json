@@ -7,8 +7,10 @@
   "dependencies": {
     "@material-ui/core": "4.10.0",
     "@material-ui/icons": "^4.9.1",
+    "@material-ui/lab": "^4.0.0-alpha.56",
     "classnames": "2.2.6",
     "csv-parser": "^2.3.3",
+    "filereader-stream": "^2.0.0",
     "history": "4.10.1",
     "moment": "2.26.0",
     "node-sass": "4.14.1",

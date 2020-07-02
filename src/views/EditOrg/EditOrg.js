@@ -21,7 +21,7 @@ import image from "assets/img/bg7.jpg";
 import ProductSection from "./Sections/ProductSection.js";
 import TeamSection from "./Sections/TeamSection.js";
 import WorkSection from "./Sections/WorkSection.js";
-
+import RecursiveTreeView from "./Sections/TreeView.js";
 const dashboardRoutes = [];
 
 const useStyles = makeStyles(styles);
@@ -55,7 +55,7 @@ export default function LandingPage(props) {
       <div className={classNames(classes.main, classes.mainRaised)}>
         <div className={classes.container}>
           <ProductSection />
-          <TeamSection />
+          <RecursiveTreeView />
           <WorkSection />
         </div>
       </div>
