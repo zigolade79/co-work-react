@@ -8,7 +8,7 @@ import TreeItem from "@material-ui/lab/TreeItem";
 import Muted from "components/Typography/Muted.js";
 import { element } from "prop-types";
 
-const data = {
+const data_old = {
   id: "root",
   name: "Parent",
   children: [
@@ -44,36 +44,22 @@ const data = {
 };
 const useStyles = makeStyles({
   root: {
-    height: 110,
+    height: 500,
     flexGrow: 1,
-    maxWidth: 400,
+    maxWidth: 1000,
   },
 });
-
-const searchHyerachy = (treeData, value) => {
-  const findedKey = Object.keys(treeData).find(
-    (key) => treeData[key] === value
-  );
-
-  if (findedKey === undefined) {
-    console.log("//현재 layer에서 못찾음 -> array 탐색");
-    if (Array.isArray(treeData.children)) {
-      for (let el of treeData.children) {
-        const result = searchHyerachy(el, value);
-        if (result) {
-          return result;
-        }
-      }
-    }
-  } else {
-    console.log("//찾음 : 현재 object를 반환");
-    return treeData;
-  }
+const printObject = (object) => {
+  const str = JSON.stringify(object, null, 4); // (Optional) beautiful indented output.
+  console.log(str); // Logs output to dev tools console.
 };
-
-export default function RecursiveTreeView() {
+export default function RecursiveTreeView(props) {
   const classes = useStyles();
-  console.log(searchHyerachy(data, "Child - 10"));
+  console.log("RecursiveTreeView");
+  if (props.data === undefined) {
+    return <div></div>;
+  }
+  printObject(props.data);
   const renderTree = (nodes) => (
     <TreeItem key={nodes.id} nodeId={nodes.id} label={nodes.name}>
       {Array.isArray(nodes.children)
@@ -91,7 +77,7 @@ export default function RecursiveTreeView() {
           defaultExpanded={["root"]}
           defaultExpandIcon={<ChevronRightIcon />}
         >
-          {renderTree(data)}
+          {renderTree(props.data)}
         </TreeView>
       </Muted>
     </div>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 // @material-ui/core components
 import { makeStyles } from "@material-ui/core/styles";
 
@@ -13,6 +13,7 @@ import GridContainer from "components/Grid/GridContainer.js";
 import GridItem from "components/Grid/GridItem.js";
 import InfoArea from "components/InfoArea/InfoArea.js";
 import Button from "components/CustomButtons/Button.js";
+import RecursiveTreeView from "./TreeView.js";
 
 import styles from "assets/jss/material-kit-react/views/landingPageSections/productStyle.js";
 
@@ -20,11 +21,11 @@ import csv from "csv-parser";
 import fileReaderStream from "filereader-stream";
 
 const useStyles = makeStyles(styles);
-
-const results = [];
-const hierarchicalData = {};
+let setState;
 
 const onChange = (event) => {
+  const results = [];
+  const hierarchicalData = {};
   const files = event.target.files;
   if (files.length === 0) return;
 
@@ -35,18 +36,25 @@ const onChange = (event) => {
       console.log(results);
       hierarchicalData.id = "root";
       hierarchicalData.name = "Company";
-      makeHierarchy(results);
-      console.log(hierarchicalData);
+      makeHierarchy(hierarchicalData, results);
+      printObject(hierarchicalData);
+      console.log(setState);
+      setState(hierarchicalData);
+      //printObject(hierarchicalData);
+      //setOrgDb(hierarchicalData);
     });
 };
-
+const printObject = (object) => {
+  const str = JSON.stringify(object, null, 4); // (Optional) beautiful indented output.
+  console.log(str); // Logs output to dev tools console.
+};
 const searchHyerachy = (treeData, value) => {
   const findedKey = Object.keys(treeData).find(
     (key) => treeData[key] === value
   );
 
   if (findedKey === undefined) {
-    console.log("//현재 layer에서 못찾음 -> array 탐색");
+    //console.log("//현재 layer에서 못찾음 -> array 탐색");
     if (Array.isArray(treeData.children)) {
       for (let el of treeData.children) {
         const result = searchHyerachy(el, value);
@@ -56,7 +64,7 @@ const searchHyerachy = (treeData, value) => {
       }
     }
   } else {
-    console.log("//찾음 : 현재 object를 반환");
+    // console.log("//찾음 : 현재 object를 반환");
     return treeData;
   }
 };
@@ -64,109 +72,132 @@ const searchHyerachy = (treeData, value) => {
 const getKeyByValue = (object, value) => {
   return Object.keys(object).find((key) => object[key] === value);
 };
-
-const makeHierarchy = (parsedData) => {
-  parsedData.forEach((row) => {
-    Object.keys(row).forEach((key, index, keys) => {
-      const result = searchHyerachy(hierarchicalData, row[key]);
-      console.log(hierarchicalData);
-      if (result === undefined && index === 0) {
-        console.log("//처음부터 못찾음");
-        if (Array.isArray(hierarchicalData.children)) {
-          hierarchicalData.children.push({
-            id: row[key],
-            name: row[key],
+const getValueByIndex = (object, index) => {
+  return object[Object.keys(object)[index]];
+};
+const addValueToParent = (object, element) => {
+  //console.log("addValueToParent");
+  //printObject(object);
+  if (Array.isArray(object.children)) {
+    //이미 chidren array가 존재하면 거기에 push
+    object.children.push(element);
+  } else {
+    //진짜 맨 처음인 경우 children array 생성
+    object.children = [element];
+  }
+};
+const makeHierarchy = (hierarchiData, parsedData) => {
+  const row = parsedData.length;
+  const column = Object.keys(parsedData[0]).length;
+  //console.log(`row= ${row}, column= ${column}`);
+  for (let r = 0; r < row; r++) {
+    // console.log(`r: ${r}`);
+    const person = {
+      id: getValueByIndex(parsedData[r], column - 2),
+      name: getValueByIndex(parsedData[r], column - 2),
+      email: getValueByIndex(parsedData[r], column - 1),
+    };
+    //printObject(person);
+    let c;
+    for (c = 0; c < column - 2; c++) {
+      // console.log(`c: ${c}`);
+      const col_element = getValueByIndex(parsedData[r], c);
+      const result = searchHyerachy(hierarchiData, col_element);
+      if (col_element === "") {
+        // console.log("조직이 비어있으면 부모 노드에 person 추가 하고 다음 행으로" );
+        break;
+      }
+      if (result === undefined) {
+        // 못찾음
+        if (c === 0) {
+          //근데 최상위부터 못찾음 --> root에 추가
+          addValueToParent(hierarchiData, {
+            id: col_element,
+            name: col_element,
           });
         } else {
-          hierarchicalData.children = [
-            {
-              id: row[key],
-              name: row[key],
-            },
-          ];
-        }
-      } else if (result === undefined && index !== 0) {
-        console.log("//상위 조직이 존재");
-        const parentOrg = searchHyerachy(
-          hierarchicalData,
-          row[keys[index - 1]]
-        );
-        console.log(parentOrg);
-        if (Array.isArray(parentOrg.children)) {
-          parentOrg.children.push({
-            id: row[key],
-            name: row[key],
-          });
-        } else {
-          parentOrg.children = [
-            {
-              id: row[key],
-              name: row[key],
-            },
-          ];
+          //최상위는 아니고 못찾음 부모가 포함된 object의 children array에 push
+          const parentOrg = searchHyerachy(
+            hierarchiData,
+            getValueByIndex(parsedData[r], c - 1)
+          );
+          addValueToParent(parentOrg, { id: col_element, name: col_element });
         }
       }
-    });
-  });
+    }
+    //상위 조직을 모두 검색하고 추가함 --> 부모 노드에 person 추가
+    const parentOrg = searchHyerachy(
+      hierarchiData,
+      getValueByIndex(parsedData[r], c - 1)
+    );
+    addValueToParent(parentOrg, person);
+  }
+
+  //console.log(hierarchiData);
 };
 
-export default function ProductSection() {
+export default function ProductSection(props) {
   const classes = useStyles();
+  console.log(props);
+  setState = props.setState;
+  console.log(setState);
   return (
-    <div className={classes.section}>
-      <GridContainer justify="center">
-        <GridItem xs={12} sm={12} md={8}>
+    <div>
+      <div className={classes.section}>
+        <GridContainer justify="center">
+          <GridItem xs={12} sm={12} md={8}>
+            <div>
+              <h4 className={classes.title}>조직도 파일 업로드</h4>
+            </div>
+          </GridItem>
+        </GridContainer>
+        <GridContainer direction="row" justify="space-around">
           <div>
-            <h4 className={classes.title}>조직도 파일 업로드</h4>
-          </div>
-        </GridItem>
-      </GridContainer>
-      <GridContainer direction="row" justify="space-around">
-        <div>
-          <input
-            color="primary"
-            accept="*"
-            type="file"
-            onChange={onChange}
-            id="icon-button-file"
-            style={{ display: "none" }}
-          />
-          <label htmlFor="icon-button-file">
-            <Button
-              variant="contained"
-              component="span"
-              className={classes.button}
-              size="large"
+            <input
               color="primary"
-            >
-              CSV File Open
-            </Button>
-          </label>
-        </div>
+              accept="*"
+              type="file"
+              onChange={onChange}
+              id="icon-button-file"
+              style={{ display: "none" }}
+            />
+            <label htmlFor="icon-button-file">
+              <Button
+                variant="contained"
+                component="span"
+                className={classes.button}
+                size="large"
+                color="primary"
+              >
+                CSV File Open
+              </Button>
+            </label>
+          </div>
 
-        <div>
-          <input
-            color="success"
-            accept="*"
-            type="file"
-            onChange={onChange}
-            id="icon-button-file"
-            style={{ display: "none" }}
-          />
-          <label htmlFor="icon-button-file">
-            <Button
-              variant="contained"
-              component="span"
-              className={classes.button}
-              size="large"
+          <div>
+            <input
               color="success"
-            >
-              Upload to Server
-              <PublishIcon />
-            </Button>
-          </label>
-        </div>
-      </GridContainer>
+              accept="*"
+              type="file"
+              onChange={onChange}
+              id="icon-button-file"
+              style={{ display: "none" }}
+            />
+            <label htmlFor="icon-button-file">
+              <Button
+                variant="contained"
+                component="span"
+                className={classes.button}
+                size="large"
+                color="success"
+              >
+                Upload to Server
+                <PublishIcon />
+              </Button>
+            </label>
+          </div>
+        </GridContainer>
+      </div>
     </div>
   );
 }

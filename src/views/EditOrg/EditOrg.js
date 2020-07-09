@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 // nodejs library that concatenates classes
 import classNames from "classnames";
 // react components for routing our app without refresh
@@ -22,12 +22,35 @@ import ProductSection from "./Sections/ProductSection.js";
 import TeamSection from "./Sections/TeamSection.js";
 import WorkSection from "./Sections/WorkSection.js";
 import RecursiveTreeView from "./Sections/TreeView.js";
+
 const dashboardRoutes = [];
 
 const useStyles = makeStyles(styles);
 
-export default function LandingPage(props) {
+const ShowTree = (props) => {
   const classes = useStyles();
+  console.log("in render tree");
+  console.log(props.data);
+  if (props.data === "unloded") {
+    console.log("props.data is unloded");
+    return (
+      <div className={classes.section}>
+        <div>
+          <h4 className={classes.title}>file not loaded</h4>
+        </div>
+      </div>
+    );
+  } else {
+    console.log(props.data);
+    return <RecursiveTreeView data={props.data} />;
+  }
+};
+
+export default function LandingPage(props) {
+  console.log("LandingPage");
+  const classes = useStyles();
+  const [orgDb, setOrgDb] = useState("unloded");
+  console.log(orgDb);
   const { ...rest } = props;
   return (
     <div>
@@ -54,12 +77,10 @@ export default function LandingPage(props) {
 
       <div className={classNames(classes.main, classes.mainRaised)}>
         <div className={classes.container}>
-          <ProductSection />
-          <RecursiveTreeView />
-          <WorkSection />
+          <ProductSection setState={setOrgDb} />
+          <ShowTree data={orgDb} />
         </div>
       </div>
-      <Footer />
     </div>
   );
 }
