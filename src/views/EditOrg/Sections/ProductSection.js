@@ -21,7 +21,31 @@ import csv from "csv-parser";
 import fileReaderStream from "filereader-stream";
 
 const useStyles = makeStyles(styles);
-let setState;
+let setState, setOrg;
+
+const data = {
+  variables: {
+    inputOrgs: {
+      name: "root2",
+      children: [
+        {
+          name: "member1",
+          email: "member1@gmail.com",
+          children: [
+            {
+              name: "member2",
+              email: "member2@gmail.com",
+            },
+            {
+              name: "member3",
+              email: "member3@gmail.com",
+            },
+          ],
+        },
+      ],
+    },
+  },
+};
 
 const onChange = (event) => {
   const results = [];
@@ -136,11 +160,18 @@ const makeHierarchy = (hierarchiData, parsedData) => {
   //console.log(hierarchiData);
 };
 
+const sendData = () => {
+  console.log("call sendData");
+  console.log(data);
+  setOrg(data);
+};
+
 export default function ProductSection(props) {
   const classes = useStyles();
   console.log(props);
   setState = props.setState;
-  console.log(setState);
+  setOrg = props.setOrg;
+  console.log(setOrg);
   return (
     <div>
       <div className={classes.section}>
@@ -175,26 +206,17 @@ export default function ProductSection(props) {
           </div>
 
           <div>
-            <input
+            <Button
+              variant="contained"
+              component="span"
+              className={classes.button}
+              size="large"
               color="success"
-              accept="*"
-              type="file"
-              onChange={onChange}
-              id="icon-button-file"
-              style={{ display: "none" }}
-            />
-            <label htmlFor="icon-button-file">
-              <Button
-                variant="contained"
-                component="span"
-                className={classes.button}
-                size="large"
-                color="success"
-              >
-                Upload to Server
-                <PublishIcon />
-              </Button>
-            </label>
+              onClick={sendData}
+            >
+              Upload to Server
+              <PublishIcon />
+            </Button>
           </div>
         </GridContainer>
       </div>

@@ -12,17 +12,23 @@ import ProfilePage from "views/ProfilePage/ProfilePage.js";
 import LoginPage from "views/LoginPage/LoginPage.js";
 import EditOrg from "views/EditOrg/EditOrg.js";
 
+//apollo wraper
+import { ApolloProvider } from "react-apollo";
+import apolloClient from "./config/createApolloClient";
+
 var hist = createBrowserHistory();
 
 ReactDOM.render(
-  <Router history={hist}>
-    <Switch>
-      <Route path="/profile-page" component={ProfilePage} />
-      <Route path="/login-page" component={LoginPage} />
-      <Route path="/component" component={Components} />
-      <Route path="/edit-org" component={EditOrg} />
-      <Route path="/" component={LandingPage} />
-    </Switch>
-  </Router>,
+  <ApolloProvider client={apolloClient}>
+    <Router history={hist}>
+      <Switch>
+        <Route path="/profile-page" component={ProfilePage} />
+        <Route path="/login-page" component={LoginPage} />
+        <Route path="/component" component={Components} />
+        <Route path="/edit-org" component={EditOrg} />
+        <Route path="/" component={LandingPage} />
+      </Switch>
+    </Router>
+  </ApolloProvider>,
   document.getElementById("root")
 );

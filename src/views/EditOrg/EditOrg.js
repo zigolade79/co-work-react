@@ -23,6 +23,40 @@ import TeamSection from "./Sections/TeamSection.js";
 import WorkSection from "./Sections/WorkSection.js";
 import RecursiveTreeView from "./Sections/TreeView.js";
 
+//graohql
+import { useQuery, useMutation } from "@apollo/react-hooks";
+import ApolloClient from "apollo-client";
+import { Query } from "react-apollo";
+import { gql } from "apollo-boost";
+
+export const GET_POSTS = gql`
+  query Posts($name: String!) {
+    posts(name: $name) {
+      _id
+      name
+      children {
+        name
+        email
+        children {
+          name
+          email
+          children {
+            name
+            email
+          }
+        }
+      }
+    }
+  }
+`;
+const ADD_POST = gql`
+  mutation AddPost($inputOrgs: Org!) {
+    addPost(inputOrgs: $inputOrgs) {
+      name
+    }
+  }
+`;
+
 const dashboardRoutes = [];
 
 const useStyles = makeStyles(styles);
@@ -47,10 +81,22 @@ const ShowTree = (props) => {
 };
 
 export default function LandingPage(props) {
+  const { loading, error, data } = useQuery(GET_POSTS, {
+    variables: { name: "root" },
+  });
+  if (loading && !data) {
+    console.log("loading...");
+  } else if (error) {
+    console.log(error);
+  } else {
+    console.log(data);
+  }
+  const [addPost] = useMutation(ADD_POST);
   console.log("LandingPage");
+  console.log(addPost);
   const classes = useStyles();
   const [orgDb, setOrgDb] = useState("unloded");
-  console.log(orgDb);
+
   const { ...rest } = props;
   return (
     <div>
@@ -77,7 +123,7 @@ export default function LandingPage(props) {
 
       <div className={classNames(classes.main, classes.mainRaised)}>
         <div className={classes.container}>
-          <ProductSection setState={setOrgDb} />
+          <ProductSection setState={setOrgDb} setOrg={addPost} />
           <ShowTree data={orgDb} />
         </div>
       </div>
