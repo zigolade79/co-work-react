@@ -63,5 +63,8 @@
       "not op_mini all"
     ],
     "development": []
-  }
+  },
+  "repository": "https://github.com/zigolade79/co-work-react.git",
+  "author": "zigolade79 <zigolade79@gmail.com>",
+  "license": "MIT"
 }
