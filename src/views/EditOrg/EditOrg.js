@@ -24,10 +24,8 @@ import WorkSection from "./Sections/WorkSection.js";
 import RecursiveTreeView from "./Sections/TreeView.js";
 
 //graohql
-import { useQuery, useMutation } from "@apollo/react-hooks";
-import ApolloClient from "apollo-client";
-import { Query } from "react-apollo";
-import { gql } from "apollo-boost";
+import { useQuery, useMutation } from "@apollo/client";
+import { gql } from "@apollo/client";
 
 export const GET_POSTS = gql`
   query Posts($name: String!) {

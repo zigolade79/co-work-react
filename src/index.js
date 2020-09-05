@@ -13,7 +13,7 @@ import LoginPage from "views/LoginPage/LoginPage.js";
 import EditOrg from "views/EditOrg/EditOrg.js";
 
 //apollo wraper
-import { ApolloProvider } from "react-apollo";
+import { ApolloProvider } from "@apollo/client";
 import apolloClient from "./config/createApolloClient";
 
 var hist = createBrowserHistory();
@@ -32,3 +32,5 @@ ReactDOM.render(
   </ApolloProvider>,
   document.getElementById("root")
 );
+
+// const client = ...
