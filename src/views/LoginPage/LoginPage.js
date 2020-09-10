@@ -1,4 +1,5 @@
 import React from "react";
+import { useHistory } from "react-router-dom";
 // @material-ui/core components
 import { makeStyles } from "@material-ui/core/styles";
 import InputAdornment from "@material-ui/core/InputAdornment";
@@ -24,6 +25,8 @@ import styles from "assets/jss/material-kit-react/views/loginPage.js";
 import image from "assets/img/bg7.jpg";
 import CognitoConfig from "../../config/config";
 
+import { gql, useApolloClient } from "@apollo/client";
+
 import {
   CognitoUserPool,
   CognitoUserAttribute,
@@ -31,6 +34,11 @@ import {
   CognitoUser,
 } from "amazon-cognito-identity-js";
 
+const IS_LOGGED_IN = gql`
+  query IsUserLoggedIn {
+    isLoggedIn @client
+  }
+`;
 // AWSCognito 객체를 계속해서 사용하는데 여기에 리전 정보를 저장합니다.
 // CognitoConfig.region이 위에서 별도의 js 파일에 넣어둔 설정값입니다.
 
@@ -44,8 +52,12 @@ const userPool = new CognitoUserPool({
 // 회원가입 함수와 인증 함수에서 같은 객체를 사용해야하기 때문에 전역변수로 뺐습니다.
 let cognitoUser;
 
-function submitSignUp(email, user_Pw) {
+function submitSignUp(email, user_Pw, user_pw_confirm, setType) {
   console.log("submitSignUp");
+  if (user_Pw !== user_pw_confirm) {
+    alert("패스워드를 확인해주세요");
+    return;
+  }
   // 가입할 때 사용자가 입력한 정보들을 저장할 배열입니다.
   const attributeList = [
     new CognitoUserAttribute({
@@ -88,6 +100,7 @@ function submitSignUp(email, user_Pw) {
       if (err.code === "UsernameExistsException") {
         alert("이미 가입한 이메일 입니다.");
       }
+      setType("login");
       // alert(err);
       return;
     }
@@ -96,10 +109,11 @@ function submitSignUp(email, user_Pw) {
     // 인증 함수에서 사용해야하기에 위에서 만든 전역변수인 cognitoUser에 넣어놓습니다.
     cognitoUser = result.user;
     console.log("user name is " + cognitoUser.getUsername());
+    setType("login");
   });
 }
 
-function submitSignin(email, password) {
+function submitSignin(email, password, history, apolloClient) {
   // 입력 폼에서 ID와 비밀번호를 입력받습니다.
   // 저는 phone number를 alias로 설정해서 ID 처럼 사용할 수 있게 했습니다.
   //let user_PhoneNumber = document.getElementById("signin_phonenumber").value;
@@ -125,8 +139,21 @@ function submitSignin(email, password) {
     onSuccess: function (result) {
       // 로그인에 성공하면 Token이 반환되어 옵니다.
       console.log("access token + " + result.getAccessToken().getJwtToken());
+      localStorage.setItem(
+        "accesstoken",
+        result.getAccessToken().getJwtToken()
+      );
       // API Gateway로 만든 API에 Request를 보낼 때는 Authorization 헤더의 값으로 idToken을 넣어야합니다.
       console.log("idToken + " + result.idToken.jwtToken);
+      localStorage.setItem("idToken", result.idToken.jwtToken);
+      apolloClient.writeQuery({
+        query: IS_LOGGED_IN,
+        data: {
+          isLoggedIn: !!localStorage.getItem("idToken"),
+        },
+      });
+
+      history.push("/");
     },
     onFailure: function (err) {
       alert(err.code);
@@ -199,82 +226,60 @@ export default function LoginPage(props) {
   const [user_code, setCode] = React.useState("");
   const [page_type, setType] = React.useState("login");
   const { ...rest } = props;
-  if (page_type == "login") {
-    return (
-      <div>
-        <Header
-          absolute
-          color="transparent"
-          brand="Material Kit React"
-          rightLinks={<HeaderLinks />}
-          {...rest}
-        />
-        <div
-          className={classes.pageHeader}
-          style={{
-            backgroundImage: "url(" + image + ")",
-            backgroundSize: "cover",
-            backgroundPosition: "top center",
-          }}
-        >
-          <div className={classes.container}>
-            <GridContainer justify="center">
-              <GridItem xs={12} sm={12} md={4}>
-                <Card className={classes[cardAnimaton]}>
-                  <form className={classes.form}>
-                    <CardHeader color="primary" className={classes.cardHeader}>
-                      <h4>로그인</h4>
-                      <div className={classes.socialLine}>
-                        <Button
-                          justIcon
-                          href="#pablo"
-                          target="_blank"
-                          color="transparent"
-                          onClick={(e) => e.preventDefault()}
-                        >
-                          <i className={"fab fa-twitter"} />
-                        </Button>
-                        <Button
-                          justIcon
-                          href="#pablo"
-                          target="_blank"
-                          color="transparent"
-                          onClick={(e) => e.preventDefault()}
-                        >
-                          <i className={"fab fa-facebook"} />
-                        </Button>
-                        <Button
-                          justIcon
-                          href="#pablo"
-                          target="_blank"
-                          color="transparent"
-                          onClick={(e) => e.preventDefault()}
-                        >
-                          <i className={"fab fa-google-plus-g"} />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <p className={classes.divider}>Or Be Classical</p>
-                    <CardBody>
-                      <CustomInput
-                        labelText="Email..."
-                        id="email"
-                        formControlProps={{
-                          fullWidth: true,
-                        }}
-                        inputProps={{
-                          onChange: (e) => setEmail(e.target.value),
-                          type: "email",
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <Email className={classes.inputIconsColor} />
-                            </InputAdornment>
-                          ),
-                        }}
-                      />
+  const history = useHistory();
+  const apolloClient = useApolloClient();
+  return (
+    <div>
+      <Header
+        absolute
+        color="transparent"
+        brand="Material Kit React"
+        rightLinks={<HeaderLinks />}
+        {...rest}
+      />
+      <div
+        className={classes.pageHeader}
+        style={{
+          backgroundImage: "url(" + image + ")",
+          backgroundSize: "cover",
+          backgroundPosition: "top center",
+        }}
+      >
+        <div className={classes.container}>
+          <GridContainer justify="center">
+            <GridItem xs={12} sm={12} md={4}>
+              <Card className={classes[cardAnimaton]}>
+                <form className={classes.form}>
+                  <CardHeader color="primary" className={classes.cardHeader}>
+                    {page_type === "login" && <h4>로그인</h4>}
+                    {page_type === "forgotpw" && <h4>비밀번호 찾기</h4>}
+                    {page_type === "changepw" && <h4>비밀번호 재설정</h4>}
+                    {page_type === "signup" && <h4>회원 가입</h4>}
+                  </CardHeader>
+                  <p className={classes.divider}>Or Be Classical</p>
+                  <CardBody>
+                    <CustomInput
+                      labelText="Email"
+                      id="email"
+                      formControlProps={{
+                        fullWidth: true,
+                      }}
+                      inputProps={{
+                        onChange: (e) => setEmail(e.target.value),
+                        type: "email",
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <Email className={classes.inputIconsColor} />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                    {(page_type === "login" ||
+                      page_type === "changepw" ||
+                      page_type === "signup") && (
                       <CustomInput
                         labelText="Password"
-                        id="pass"
+                        id="password"
                         formControlProps={{
                           onChange: (e) => setPw(e.target.value),
                           fullWidth: true,
@@ -291,227 +296,17 @@ export default function LoginPage(props) {
                           autoComplete: "off",
                         }}
                       />
-                    </CardBody>
-                    <CardFooter className={classes.cardFooter}>
-                      <Button
-                        simple
-                        color="primary"
-                        size="lg"
-                        onClick={(e) => submitSignin(user_email, user_pw)}
-                      >
-                        로그인
-                      </Button>
-                    </CardFooter>
-                    <CardFooter className={classes.cardFooter}>
-                      <Button
-                        simple
-                        color="primary"
-                        size="sm"
-                        onClick={(e) => setType("forgotpw")}
-                      >
-                        비밀번호 찾기
-                      </Button>
-                      <Button
-                        simple
-                        color="primary"
-                        size="sm"
-                        onClick={(e) => setType("signup")}
-                      >
-                        가입
-                      </Button>
-                    </CardFooter>
-                  </form>
-                </Card>
-              </GridItem>
-            </GridContainer>
-          </div>
-          <Footer whiteFont />
-        </div>
-      </div>
-    );
-  } else if (page_type == "forgotpw") {
-    return (
-      <div>
-        <Header
-          absolute
-          color="transparent"
-          brand="Material Kit React"
-          rightLinks={<HeaderLinks />}
-          {...rest}
-        />
-        <div
-          className={classes.pageHeader}
-          style={{
-            backgroundImage: "url(" + image + ")",
-            backgroundSize: "cover",
-            backgroundPosition: "top center",
-          }}
-        >
-          <div className={classes.container}>
-            <GridContainer justify="center">
-              <GridItem xs={12} sm={12} md={4}>
-                <Card className={classes[cardAnimaton]}>
-                  <form className={classes.form}>
-                    <CardHeader color="primary" className={classes.cardHeader}>
-                      <h4>비밀번호 찾기</h4>
-                      <div className={classes.socialLine}>
-                        <Button
-                          justIcon
-                          href="#pablo"
-                          target="_blank"
-                          color="transparent"
-                          onClick={(e) => e.preventDefault()}
-                        >
-                          <i className={"fab fa-twitter"} />
-                        </Button>
-                        <Button
-                          justIcon
-                          href="#pablo"
-                          target="_blank"
-                          color="transparent"
-                          onClick={(e) => e.preventDefault()}
-                        >
-                          <i className={"fab fa-facebook"} />
-                        </Button>
-                        <Button
-                          justIcon
-                          href="#pablo"
-                          target="_blank"
-                          color="transparent"
-                          onClick={(e) => e.preventDefault()}
-                        >
-                          <i className={"fab fa-google-plus-g"} />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <p className={classes.divider}>Or Be Classical</p>
-                    <CardBody>
-                      <CustomInput
-                        labelText="Email..."
-                        id="email"
-                        formControlProps={{
-                          fullWidth: true,
-                        }}
-                        inputProps={{
-                          onChange: (e) => setEmail(e.target.value),
-                          type: "email",
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <Email className={classes.inputIconsColor} />
-                            </InputAdornment>
-                          ),
-                        }}
-                      />
-                    </CardBody>
-                    <CardFooter className={classes.cardFooter}>
-                      <Button
-                        simple
-                        color="primary"
-                        size="lg"
-                        onClick={(e) => submitForgotPW(user_email, setType)}
-                      >
-                        비밀번호 찾기
-                      </Button>
-                    </CardFooter>
-                    <CardFooter className={classes.cardFooter}>
-                      <Button
-                        simple
-                        color="primary"
-                        size="sm"
-                        onClick={(e) => setType("login")}
-                      >
-                        로그인
-                      </Button>
-                      <Button
-                        simple
-                        color="primary"
-                        size="sm"
-                        onClick={(e) => setType("signup")}
-                      >
-                        가입
-                      </Button>
-                    </CardFooter>
-                  </form>
-                </Card>
-              </GridItem>
-            </GridContainer>
-          </div>
-          <Footer whiteFont />
-        </div>
-      </div>
-    );
-  } else if (page_type == "changepw") {
-    return (
-      <div>
-        <Header
-          absolute
-          color="transparent"
-          brand="Material Kit React"
-          rightLinks={<HeaderLinks />}
-          {...rest}
-        />
-        <div
-          className={classes.pageHeader}
-          style={{
-            backgroundImage: "url(" + image + ")",
-            backgroundSize: "cover",
-            backgroundPosition: "top center",
-          }}
-        >
-          <div className={classes.container}>
-            <GridContainer justify="center">
-              <GridItem xs={12} sm={12} md={4}>
-                <Card className={classes[cardAnimaton]}>
-                  <form className={classes.form}>
-                    <CardHeader color="primary" className={classes.cardHeader}>
-                      <h4>비밀번호 재설정</h4>
-                    </CardHeader>
-                    <p className={classes.divider}>Or Be Classical</p>
-                    <CardBody>
-                      <CustomInput
-                        labelText="Email..."
-                        id="email"
-                        formControlProps={{
-                          fullWidth: true,
-                        }}
-                        inputProps={{
-                          onChange: (e) => setEmail(e.target.value),
-                          type: "email",
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <Email className={classes.inputIconsColor} />
-                            </InputAdornment>
-                          ),
-                        }}
-                      />
-                      <CustomInput
-                        labelText="Password"
-                        id="pass"
-                        formControlProps={{
-                          onChange: (e) => setPw(e.target.value),
-                          fullWidth: true,
-                        }}
-                        inputProps={{
-                          type: "password",
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <Icon className={classes.inputIconsColor}>
-                                lock_outline
-                              </Icon>
-                            </InputAdornment>
-                          ),
-                          autoComplete: "off",
-                        }}
-                      />
+                    )}
+                    {(page_type === "signup" || page_type === "changepw") && (
                       <CustomInput
                         labelText="Password 확인"
-                        id="pass"
+                        id="password_confirm"
                         formControlProps={{
                           onChange: (e) => setConfirmPw(e.target.value),
                           fullWidth: true,
                         }}
                         inputProps={{
-                          type: "password",
+                          type: "password_confirm",
                           endAdornment: (
                             <InputAdornment position="end">
                               <Icon className={classes.inputIconsColor}>
@@ -522,6 +317,8 @@ export default function LoginPage(props) {
                           autoComplete: "off",
                         }}
                       />
+                    )}
+                    {page_type === "changepw" && (
                       <CustomInput
                         labelText="인증 코드"
                         id="pass"
@@ -540,7 +337,40 @@ export default function LoginPage(props) {
                           autoComplete: "off",
                         }}
                       />
-                    </CardBody>
+                    )}
+                  </CardBody>
+                  {page_type === "login" && (
+                    <CardFooter className={classes.cardFooter}>
+                      <Button
+                        simple
+                        color="primary"
+                        size="lg"
+                        onClick={(e) =>
+                          submitSignin(
+                            user_email,
+                            user_pw,
+                            history,
+                            apolloClient
+                          )
+                        }
+                      >
+                        로그인
+                      </Button>
+                    </CardFooter>
+                  )}
+                  {page_type === "forgotpw" && (
+                    <CardFooter className={classes.cardFooter}>
+                      <Button
+                        simple
+                        color="primary"
+                        size="lg"
+                        onClick={(e) => submitForgotPW(user_email, setType)}
+                      >
+                        비밀번호 찾기
+                      </Button>
+                    </CardFooter>
+                  )}
+                  {page_type === "changepw" && (
                     <CardFooter className={classes.cardFooter}>
                       <Button
                         simple
@@ -559,32 +389,52 @@ export default function LoginPage(props) {
                         비밀번호 찾기
                       </Button>
                     </CardFooter>
+                  )}
+                  {page_type === "signup" && (
                     <CardFooter className={classes.cardFooter}>
                       <Button
                         simple
                         color="primary"
-                        size="sm"
-                        onClick={(e) => setType("login")}
+                        size="lg"
+                        onClick={(e) =>
+                          submitSignUp(
+                            user_email,
+                            user_pw,
+                            user_pw_confirm,
+                            setType
+                          )
+                        }
                       >
-                        로그인
-                      </Button>
-                      <Button
-                        simple
-                        color="primary"
-                        size="sm"
-                        onClick={(e) => setType("signup")}
-                      >
-                        가입
+                        회원가입
                       </Button>
                     </CardFooter>
-                  </form>
-                </Card>
-              </GridItem>
-            </GridContainer>
-          </div>
-          <Footer whiteFont />
+                  )}
+
+                  <CardFooter className={classes.cardFooter}>
+                    <Button
+                      simple
+                      color="primary"
+                      size="sm"
+                      onClick={(e) => setType("forgotpw")}
+                    >
+                      비밀번호 찾기
+                    </Button>
+                    <Button
+                      simple
+                      color="primary"
+                      size="sm"
+                      onClick={(e) => setType("signup")}
+                    >
+                      가입
+                    </Button>
+                  </CardFooter>
+                </form>
+              </Card>
+            </GridItem>
+          </GridContainer>
         </div>
+        <Footer whiteFont />
       </div>
-    );
-  }
+    </div>
+  );
 }

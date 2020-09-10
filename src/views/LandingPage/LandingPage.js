@@ -24,12 +24,22 @@ import ProductSection from "./Sections/ProductSection.js";
 import TeamSection from "./Sections/TeamSection.js";
 import WorkSection from "./Sections/WorkSection.js";
 
+//apollo
+import { gql, useQuery, useApolloClient } from "@apollo/client";
+
+const IS_LOGGED_IN = gql`
+  query IsUserLoggedIn {
+    isLoggedIn @client
+  }
+`;
+
 const dashboardRoutes = [];
 
 const useStyles = makeStyles(styles);
 
 export default function LandingPage(props) {
   const classes = useStyles();
+  const { data } = useQuery(IS_LOGGED_IN);
   const { ...rest } = props;
   return (
     <div>
@@ -55,13 +65,24 @@ export default function LandingPage(props) {
                 할 수 있습니다.
               </h4>
               <br />
-              <Link to={"/login-page"} className={classes.link}>
-                <Button color="rose" align="right">
-                  <h4>
-                    <strong>지금 시작</strong>
-                  </h4>
-                </Button>
-              </Link>
+              {!data.isLoggedIn && (
+                <Link to={"/login-page"} className={classes.link}>
+                  <Button color="rose" align="right">
+                    <h4>
+                      <strong>지금 시작</strong>
+                    </h4>
+                  </Button>
+                </Link>
+              )}
+              {data.isLoggedIn && (
+                <Link to={"/edit-org"} className={classes.link}>
+                  <Button color="rose" align="right">
+                    <h4>
+                      <strong>지금 시작</strong>
+                    </h4>
+                  </Button>
+                </Link>
+              )}
             </GridItem>
           </GridContainer>
         </div>

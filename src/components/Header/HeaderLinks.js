@@ -20,10 +20,32 @@ import Button from "components/CustomButtons/Button.js";
 
 import styles from "assets/jss/material-kit-react/components/headerLinksStyle.js";
 
+//apollo
+import { gql, useQuery, useApolloClient } from "@apollo/client";
+
+const IS_LOGGED_IN = gql`
+  query IsUserLoggedIn {
+    isLoggedIn @client
+  }
+`;
+const isLoggedIn = () => {
+  const { data } = useQuery(IS_LOGGED_IN);
+  console.log(`isLoggedIn ${data.isLoggedIn}`);
+  return data.isLoggedIn;
+};
+
+const logout = (apolloClient) => {
+  console.log("logout");
+  localStorage.removeItem("accesstoken");
+  localStorage.removeItem("idToken");
+  apolloClient.writeQuery({ query: IS_LOGGED_IN, data: { isLoggedIn: false } });
+};
+
 const useStyles = makeStyles(styles);
 
 export default function HeaderLinks(props) {
   const classes = useStyles();
+  const apolloClient = useApolloClient();
   return (
     <List className={classes.list}>
       <ListItem className={classes.listItem}>
@@ -37,7 +59,7 @@ export default function HeaderLinks(props) {
           buttonIcon={Apps}
           dropdownList={[
             <Link to="/edit-org" className={classes.dropdownLink}>
-              All components
+              조직도 관리
             </Link>,
             <a
               href="https://creativetimofficial.github.io/material-kit-react/#/documentation?ref=mkr-navbar"
@@ -50,6 +72,19 @@ export default function HeaderLinks(props) {
         />
       </ListItem>
       <ListItem className={classes.listItem}>
+        {!isLoggedIn() && (
+          <Link to="/login-page" className={classes.navLink}>
+            로그인
+          </Link>
+        )}
+        {isLoggedIn() && (
+          <Link to="/" className={classes.navLink}>
+            <span onClick={() => logout(apolloClient)}>로그아웃</span>
+          </Link>
+        )}
+      </ListItem>
+      <ListItem className={classes.listItem}>
+        {/*
         <Button
           href="https://www.creative-tim.com/product/material-kit-react?ref=mkr-navbar"
           color="transparent"
@@ -57,14 +92,10 @@ export default function HeaderLinks(props) {
           className={classes.navLink}
         >
           <CloudDownload className={classes.icons} /> Download
-        </Button>
+        </Button>*/}
       </ListItem>
       <ListItem className={classes.listItem}>
-        {/*<Tooltip title="Delete">
-          <IconButton aria-label="Delete">
-            <DeleteIcon />
-          </IconButton>
-        </Tooltip>*/}
+        {/*
         <Tooltip
           id="instagram-twitter"
           title="Follow us on twitter"
@@ -113,7 +144,7 @@ export default function HeaderLinks(props) {
           >
             <i className={classes.socialIcons + " fab fa-instagram"} />
           </Button>
-        </Tooltip>
+       </Tooltip>*/}
       </ListItem>
     </List>
   );

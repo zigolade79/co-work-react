@@ -9,7 +9,7 @@
 
 /src/assets
 
-/src/component
+#/src/component
 
 # testing
 /coverage

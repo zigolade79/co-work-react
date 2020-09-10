@@ -13,10 +13,27 @@ import LoginPage from "views/LoginPage/LoginPage.js";
 import EditOrg from "views/EditOrg/EditOrg.js";
 
 //apollo wraper
-import { ApolloProvider } from "@apollo/client";
-import apolloClient from "./config/createApolloClient";
+import { gql, ApolloProvider } from "@apollo/client";
+import apolloClient from "./apollo/createApolloClient";
 
+import { ColorLensOutlined } from "@material-ui/icons";
+
+const IS_LOGGED_IN = gql`
+  query IsUserLoggedIn {
+    isLoggedIn @client
+  }
+`;
 var hist = createBrowserHistory();
+const initialize = () => {
+  apolloClient.writeQuery({
+    query: IS_LOGGED_IN,
+    data: {
+      isLoggedIn: !!localStorage.getItem("idToken"),
+    },
+  });
+};
+
+initialize();
 
 ReactDOM.render(
   <ApolloProvider client={apolloClient}>
