@@ -13,7 +13,7 @@
     "csv-parser": "^2.3.3",
     "filereader-stream": "^2.0.0",
     "history": "4.10.1",
-    "moment": "2.26.0",
+    "moment": "2.29.2",
     "node-sass": "4.14.1",
     "nouislider": "14.5.0",
     "prop-types": "15.7.2",
